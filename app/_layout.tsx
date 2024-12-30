@@ -12,6 +12,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConfigProvider } from "@/hooks/useConfiguration";
 import { ConnectionProvider } from "@/hooks/useConnection";
+import { LocationContextProvider } from "@/components/useLocation";
+import { WeatherContextProvider } from "@/hooks/useWeather";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -37,14 +39,18 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <ConfigProvider>
-          <ConnectionProvider>
-            <SafeAreaProvider>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-            </SafeAreaProvider>
-          </ConnectionProvider>
+          <LocationContextProvider>
+            <WeatherContextProvider>
+              <ConnectionProvider>
+                <SafeAreaProvider>
+                  <Stack>
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen name="+not-found" />
+                  </Stack>
+                </SafeAreaProvider>
+              </ConnectionProvider>
+            </WeatherContextProvider>
+          </LocationContextProvider>
         </ConfigProvider>
         <StatusBar style="auto" />
       </ThemeProvider>

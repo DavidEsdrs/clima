@@ -14,7 +14,12 @@ export function DeviceConfiguration() {
         Configurações de dispositivo
       </Text>
 
-      <View className="flex flex-row items-center">
+      <View 
+        className="flex flex-row items-center" 
+        accessibilityLabel="Vibração ao Aproximar"
+        accessibilityRole="checkbox"
+        accessible
+      >
         <Checkbox
           status={configurations.deviceVibration ? 'checked' : 'unchecked'}
           onPress={() => {
@@ -28,7 +33,12 @@ export function DeviceConfiguration() {
         </Text>
       </View>
 
-      <View className="flex flex-row items-center">
+      <View 
+        className="flex flex-row items-center"
+        accessibilityLabel="Vibração ao Aproximar"
+        accessibilityRole="checkbox"
+        accessible
+      >
         <Checkbox
           status={configurations.deviceSound ? 'checked' : 'unchecked'}
           onPress={() => {
@@ -59,7 +69,8 @@ export function DeviceConfiguration() {
       <InfoBox
         className="mt-auto"
         info="Aqui estão disponíveis algumas das configurações que você pode fazer
-          no seu dispositivo SynesthesiaVision."
+          no seu dispositivo SynesthesiaVision. As alterações feitas aqui precisam ser sincronizadas
+          quando a conexão estiver ativa."
       />
     </View>
   )

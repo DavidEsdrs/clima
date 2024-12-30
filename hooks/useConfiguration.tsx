@@ -7,6 +7,7 @@ type Configurations = {
   humidity: boolean
   location: boolean
   luminosity: boolean
+  weather: boolean
   deviceVibration: boolean
   deviceSound: boolean
 }
@@ -24,6 +25,7 @@ const defaultConfigurations: Configurations = {
   humidity: false,
   location: true,
   luminosity: true,
+  weather: true,
   deviceVibration: true,
   deviceSound: true,
 }

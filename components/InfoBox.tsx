@@ -8,7 +8,11 @@ type InfoBoxProps = {
 
 export function InfoBox({ info, className }: InfoBoxProps) {
   return (
-    <View className={`bg-gray-800 p-4 rounded-lg ${className ?? ""}`}>
+    <View 
+      className={`bg-gray-800 p-4 rounded-lg ${className ?? ""}`} 
+      accessible
+      accessibilityLabel={"Dica: " + info}
+    >
       <Ionicons name="information-circle-outline" size={24} color="white" />
       <Text className="text-white text-justify">
         {info}

@@ -2,10 +2,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { ScreenTitle } from "@/components/ScreenTitle";
 import { Checkbox } from 'react-native-paper';
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useConfigurations } from "@/hooks/useConfiguration";
 import { Divider } from "@/components/Divider";
-import Feather from '@expo/vector-icons/Feather';
+import { AccessibilityFocusWrapper } from "@/components/AccessibilityFocusWrapper";
 
 type OptionsState = {
   temperature: boolean
@@ -21,7 +21,9 @@ export default function Settings() {
   return (
     <SafeAreaView className="flex-1">
       <View className="py-4 px-2">
-        <ScreenTitle name="Configurações" />
+        <AccessibilityFocusWrapper shouldFocus accessibilityLabel="Configurações">
+          <ScreenTitle name="Configurações" />
+        </AccessibilityFocusWrapper>
       </View>
       <ScrollView className="flex-1 px-2">
         <View className="py-2">

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { AccessibilityInfo, Platform } from 'react-native';
 
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Feather from '@expo/vector-icons/Feather';
@@ -33,6 +33,7 @@ export default function TabLayout() {
         options={{
           title: 'Tempo',
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="weather-partly-cloudy" size={24} color={color} />,
+          tabBarAccessibilityLabel: "Navegar para a tela de clima"
         }}
       />
       <Tabs.Screen
@@ -40,6 +41,7 @@ export default function TabLayout() {
         options={{
           title: 'Luminosidade',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="sun.and.horizon.circle" color={color} />,
+          tabBarAccessibilityLabel: "Navegar para a tela de luminosidade"
         }}
       />
       <Tabs.Screen
@@ -47,6 +49,7 @@ export default function TabLayout() {
         options={{
           title: 'Início',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarAccessibilityLabel: "Navegar para a tela de início"
         }}
       />
       <Tabs.Screen
@@ -54,6 +57,7 @@ export default function TabLayout() {
         options={{
           title: 'Conexão',
           tabBarIcon: ({ color }) => <Feather name="bluetooth" size={24} color={color} />,
+          tabBarAccessibilityLabel: "Navegar para a tela de conexão com o dispositivo"
         }}
       />
       <Tabs.Screen
@@ -61,6 +65,7 @@ export default function TabLayout() {
         options={{
           title: 'Configurações',
           tabBarIcon: ({ color }) => <FontAwesome name="gear" size={28} color={color} />,
+          tabBarAccessibilityLabel: "Navegar para a tela de configurações"
         }}
       />
     </Tabs>

@@ -6,5 +6,14 @@ type ScreenTitleProps = {
 }
 
 export function ScreenTitle({ name }: ScreenTitleProps) {
-  return <Text className="text-white text-2xl mb-4">{name}</Text>
+  return (
+    <Text 
+      className="text-white text-2xl mb-4"
+      accessible
+      accessibilityRole="header"
+      id="title"
+    >
+      {name}
+    </Text>
+  )
 }

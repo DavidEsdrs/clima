@@ -1,16 +1,11 @@
 import { View, Text, ScrollView, Pressable, Image } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { ScreenTitle } from "@/components/ScreenTitle";
 import img from "@/assets/images/logo.png"
 import { Link } from "expo-router";
 import { useConnection } from "@/hooks/useConnection";
 import { Divider } from "@/components/Divider";
-import { Checkbox, Surface, TextInput } from "react-native-paper";
-import { useState } from "react";
-import { useConfigurations } from "@/hooks/useConfiguration";
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { InfoBox } from "@/components/InfoBox";
 import { DeviceConfiguration } from "@/components/DeviceConfiguration";
+import { AccessibilityFocusWrapper } from "@/components/AccessibilityFocusWrapper";
 
 export default function HomeScreen() {
   const { isConnected } = useConnection()
@@ -27,9 +22,11 @@ export default function HomeScreen() {
         </View>
 
         <View className="py-4">
-          <Text className="text-white text-3xl mb-2">
-            Acesso Rápido
-          </Text>
+          <AccessibilityFocusWrapper shouldFocus  accessibilityLabel="Acesso Rápido">
+            <Text className="text-white text-3xl mb-2">
+              Acesso Rápido
+            </Text>
+          </AccessibilityFocusWrapper>
           <ScrollView>
             <Link className="mb-4" href={"/(tabs)/weather"} asChild>
               <Pressable className="bg-purple-400 py-2 px-4 rounded-md">
