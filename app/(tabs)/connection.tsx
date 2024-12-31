@@ -70,14 +70,10 @@
 
 import React, { useCallback, useEffect } from 'react';
 import { View, Text, Button, FlatList, TouchableOpacity } from 'react-native';
-// import { useBle } from '@/hooks/useBle';
+import { useBle } from '@/hooks/useBle';
 import { SafeAreaView } from "react-native-safe-area-context";
 import Speech from "expo-speech"
-// import { BleError, Characteristic } from "react-native-ble-plx";
-
-function use() {
-  return 1 as any
-}
+import { BleError, Characteristic } from "react-native-ble-plx";
 
 const BleScreen = () => {
   const {
@@ -92,39 +88,39 @@ const BleScreen = () => {
     writeCharacteristic,
     listenNotification,
     error
-  } = use();
+  } = useBle();
 
-  // const speak = useCallback(
-  //   (error: BleError | null, c: Characteristic | null) => {
-  //     if(!connectToDevice) {
-  //       Speech.speak("Nenhum dispositivo conectado")
-  //       return
-  //     }
-  //     if(error) {
-  //       Speech.speak("Ocorreu um erro ao receber as notificações")
-  //       return
-  //     }
+  const speak = useCallback(
+    (error: BleError | null, c: Characteristic | null) => {
+      if(!connectToDevice) {
+        Speech.speak("Nenhum dispositivo conectado")
+        return
+      }
+      if(error) {
+        Speech.speak("Ocorreu um erro ao receber as notificações")
+        return
+      }
 
-  //     let speech: string
+      let speech: string
 
-  //     if(c?.value === "bt_wea") {
-  //       speech = "Tempo"
-  //     } else if(c?.value === "bt_lum") {
-  //       speech = "Luminosidade"
-  //     } else {
-  //       speech = "Valor não reconhecido"
-  //     }
+      if(c?.value === "bt_wea") {
+        speech = "Tempo"
+      } else if(c?.value === "bt_lum") {
+        speech = "Luminosidade"
+      } else {
+        speech = "Valor não reconhecido"
+      }
 
-  //     Speech.speak(speech, {
-  //       language: "pt-BR",
-  //     })
-  //   },
-  //   [connectToDevice, characteristics]
-  // )
+      Speech.speak(speech, {
+        language: "pt-BR",
+      })
+    },
+    [connectToDevice, characteristics]
+  )
 
-  // useEffect(() => {
-  //   // listenNotification(characteristics[0], speak)
-  // }, [characteristics])
+  useEffect(() => {
+    listenNotification(characteristics[0], speak)
+  }, [characteristics])
 
   return (
     <SafeAreaView>
