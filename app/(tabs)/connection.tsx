@@ -1,79 +1,11 @@
-// import { ScreenTitle } from "@/components/ScreenTitle";
-// import { View, Text, Pressable } from "react-native";
-// import { SafeAreaView } from "react-native-safe-area-context";
-// import Feather from '@expo/vector-icons/Feather';
-// import { useConnection } from "@/hooks/useConnection";
-// import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-// import { InfoBox } from "@/components/InfoBox";
-// import { AccessibilityFocusWrapper } from "@/components/AccessibilityFocusWrapper";
-// import { useBle } from "@/hooks/useBle";
-
-// export default function Connection() {
-//   const { isConnected, tryConnect, closeConnection } = useConnection()
-//   const {  } = useBle();
-
-//   return (
-//     <SafeAreaView className="flex-1">
-//       <View className="flex flex-1 py-4 px-2">
-//         <AccessibilityFocusWrapper shouldFocus accessibilityLabel="Conexão com SynesthesiaVision">
-//           <ScreenTitle name="Conexão com SynesthesiaVision" />
-//         </AccessibilityFocusWrapper>
-
-//         <View className="flex-1 flex items-center justify-center">
-
-//           {isConnected ? (
-//             <View 
-//               className="flex items-center justify-center p-4 rounded-lg bg-gray-800"
-//             >
-//               <Feather name="bluetooth" size={68} color="white" accessible={false} />
-//               <Text className="text-white text-2xl mb-4">
-//                 Conectado
-//               </Text>
-
-//               <Pressable className="p-4 bg-red-600 rounded-lg" onPress={() => closeConnection()}>
-//                 <Text className="text-white text-xl font-bold">
-//                   Desconectar
-//                 </Text>
-//               </Pressable>
-//             </View>
-//           ) : (
-//             <View className="flex items-center justify-center p-4 rounded-lg bg-gray-800">
-//               <MaterialIcons name="bluetooth-disabled" size={68} color="white" accessible={false} />
-//               <Text className="text-white text-2xl mb-4">
-//                 Desconectado
-//               </Text>
-
-//               <Pressable className="p-4 bg-green-600 rounded-lg" onPress={() => tryConnect()}>
-//                 <Text className="text-white text-xl font-bold">
-//                   Tentar conectar
-//                 </Text>
-//               </Pressable>
-//             </View>
-//           )}
-//         </View>
-
-//         <View>
-//           <Text className="text-white">
-//             {JSON.stringify(devices, "", " ")}
-//           </Text>
-//         </View>
-
-//         <InfoBox
-//           info="Por aqui, você será capaz de se conectar com o dispositivo SynesthesiaVision
-//           para poder acessar os recursos do aplicativo de maneira mais rápida através
-//           do botão de ação localizado no óculos."
-//         />
-//       </View>
-//     </SafeAreaView>
-//   )
-// }
-
 import React, { useCallback, useEffect } from 'react';
 import { View, Text, Button, FlatList, TouchableOpacity } from 'react-native';
 import { useBle } from '@/hooks/useBle';
 import { SafeAreaView } from "react-native-safe-area-context";
-import Speech from "expo-speech"
+import * as Speech from "expo-speech"
 import { BleError, Characteristic } from "react-native-ble-plx";
+import { Buffer } from "buffer";
+import { CHARACTERISTICS_UUID } from "@/constants/Characteristics";
 
 const BleScreen = () => {
   const {
@@ -84,28 +16,35 @@ const BleScreen = () => {
     connectToDevice,
     disconnectFromDevice,
     characteristics,
-    readCharacteristic,
-    writeCharacteristic,
-    listenNotification,
     error
   } = useBle();
 
   const speak = useCallback(
     (error: BleError | null, c: Characteristic | null) => {
-      if(!connectToDevice) {
+      console.log({ messagem: "chamado", from: "connection.tsx - 96" })
+      if(!connectedDevice) {
         Speech.speak("Nenhum dispositivo conectado")
         return
       }
       if(error) {
         Speech.speak("Ocorreu um erro ao receber as notificações")
+        console.log({
+          name: error.name,
+          cause: error.cause,
+          reason: error.reason,
+          message: error.message,
+          code: error.errorCode,
+        })
         return
       }
 
       let speech: string
 
-      if(c?.value === "bt_wea") {
+      const value = c?.value ? Buffer.from(c.value, "base64").toString("ascii") : "DESCONHECIDO"
+
+      if(value === "bt_wea") {
         speech = "Tempo"
-      } else if(c?.value === "bt_lum") {
+      } else if(value === "bt_lum") {
         speech = "Luminosidade"
       } else {
         speech = "Valor não reconhecido"
@@ -115,11 +54,16 @@ const BleScreen = () => {
         language: "pt-BR",
       })
     },
-    [connectToDevice, characteristics]
+    [connectedDevice, characteristics]
   )
 
-  useEffect(() => {
-    listenNotification(characteristics[0], speak)
+  const connect = useCallback(() => {
+    for (let index = 0; index < characteristics.length; index++) {
+      if(characteristics[index].uuid === CHARACTERISTICS_UUID.DEFAULT_NOTIFICATION_CHARACTERISTIC) {
+        characteristics[index].monitor(speak)
+        break
+      }
+    }
   }, [characteristics])
 
   return (
@@ -133,7 +77,7 @@ const BleScreen = () => {
 
         <FlatList
           data={devices}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item.localName + item.id}
           renderItem={({ item }) => (
             <TouchableOpacity onPress={() => connectToDevice(item.id)}>
               <Text className="text-white">{item.name || 'Unnamed Device'}</Text>
@@ -145,17 +89,11 @@ const BleScreen = () => {
           <View>
             <Text>Connected to: {connectedDevice.name}</Text>
             <Button title="Disconnect" onPress={disconnectFromDevice} />
-            <FlatList
-              data={characteristics}
-              keyExtractor={(item) => item.uuid}
-              renderItem={({ item }) => (
-                <View>
-                  <TouchableOpacity onPress={() => readCharacteristic(item.uuid)}>
-                    <Text className="text-white">{item.uuid}</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            />
+            <TouchableOpacity className="bg-blue-500 p-3 flex justiy-center items-center mt-2" onPress={connect}>
+              <Text className="text-white font-bold">
+                Ouvir notificações
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
 

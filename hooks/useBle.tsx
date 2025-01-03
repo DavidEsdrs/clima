@@ -1,122 +1,24 @@
-// import { createContext, useContext, useEffect, useState } from "react";
-// import { PermissionsAndroid, Platform } from "react-native";
-// import { BleManager, Device } from "react-native-ble-plx";
+import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { BleManager, Device, Characteristic, UUID, NativeCharacteristic, BleError, LogLevel } from 'react-native-ble-plx';
 
-// type BluetoothConnection = {
-//   data?: any;
-// }
+type BleContextProps = {
+  devices: Device[]
+  connectedDevice?: Device | null
+  characteristics: Characteristic[]
+  error: Error | null
+  isScanning: boolean
+  scanForDevices: () => void
+  connectToDevice: (deviceId: string) => Promise<void>
+  disconnectFromDevice: () => Promise<void>
+  readCharacteristic: (characteristicUuid: string) => Promise<string | null>
+  writeCharacteristic: (characteristicUuid: string, value: string) => Promise<void>
+}
 
-// const BluetoothConnection = createContext<BluetoothConnection>({})
+const BleContext = createContext<BleContextProps | null>(null)
 
-// export function BluetoothConnectionProvider({ children }: React.PropsWithChildren) {
-//   const [data, setData] = useState()
+const manager = new BleManager()
 
-//   return (
-//     <BluetoothConnection.Provider value={{ data }}>
-//       {children}
-//     </BluetoothConnection.Provider>
-//   )
-// }
-
-// const bleManager = new BleManager()
-
-// export function useBle() {
-//   const context = useContext(BluetoothConnection)
-//   const [devices, setAllDevices] = useState<Device[]>([]);
-
-//   useEffect(() => {
-//     scanForPeripherals()
-//   }, [])
-
-//   const isDuplicteDevice = (devices: Device[], nextDevice: Device) =>
-//     devices.findIndex((device) => nextDevice.id === device.id) > -1;
-
-//   const scanForPeripherals = () =>
-//     bleManager.startDeviceScan(null, null, (error, device) => {
-//       if (error) {
-//         console.log(error);
-//       }
-
-//       if (
-//         device &&
-//         (device.localName === "Arduino" || device.name === "Arduino")
-//       ) {
-//         setAllDevices((prevState: Device[]) => {
-//           if (!isDuplicteDevice(prevState, device)) {
-//             return [...prevState, device];
-//           }
-//           return prevState;
-//         });
-//       }
-//     });
-
-//   const requestAndroid31Permissions = async () => {
-//     const bluetoothScanPermission = await PermissionsAndroid.request(
-//       PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-//       {
-//         title: "Location Permission",
-//         message: "Bluetooth Low Energy requires Location",
-//         buttonPositive: "OK",
-//       }
-//     );
-//     const bluetoothConnectPermission = await PermissionsAndroid.request(
-//       PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-//       {
-//         title: "Location Permission",
-//         message: "Bluetooth Low Energy requires Location",
-//         buttonPositive: "OK",
-//       }
-//     );
-//     const fineLocationPermission = await PermissionsAndroid.request(
-//       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-//       {
-//         title: "Location Permission",
-//         message: "Bluetooth Low Energy requires Location",
-//         buttonPositive: "OK",
-//       }
-//     );
-
-//     return (
-//       bluetoothScanPermission === "granted" &&
-//       bluetoothConnectPermission === "granted" &&
-//       fineLocationPermission === "granted"
-//     );
-//   };
-
-//   const requestPermissions = async () => {
-//     if (Platform.OS === "android") {
-//       // if ((ExpoDevice.platformApiLevel ?? -1) < 31) {
-//       //   const granted = await PermissionsAndroid.request(
-//       //     PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-//       //     {
-//       //       title: "Location Permission",
-//       //       message: "Bluetooth Low Energy requires Location",
-//       //       buttonPositive: "OK",
-//       //     }
-//       //   );
-//       //   return granted === PermissionsAndroid.RESULTS.GRANTED;
-//       // }
-
-//       const isAndroid31PermissionsGranted =
-//         await requestAndroid31Permissions();
-
-//       return isAndroid31PermissionsGranted;
-//     } else {
-//       return true;
-//     }
-//   };
-
-//   if(!context) {
-//     throw new Error("useBle deve ser usado dentro de um BluetoothConnectionProvider")
-//   }
-
-//   return {context, requestPermissions, devices}
-// }
-import { useState, useEffect, useCallback } from 'react';
-import { BleManager, Device, Characteristic, UUID, NativeCharacteristic, BleError } from 'react-native-ble-plx';
-
-export const useBle = () => {
-  const [manager] = useState(() => new BleManager());
+export function BleContextProvider({ children }: React.PropsWithChildren) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [characteristics, setCharacteristics] = useState<Characteristic[]>([]);
@@ -124,7 +26,13 @@ export const useBle = () => {
   const [error, setError] = useState<Error | null>(null)
 
   useEffect(() => {
+    manager.setLogLevel(LogLevel.Verbose);
+    manager.onStateChange(state => {
+      console.log("BLE state changed: ", state)
+    })
+
     return () => {
+      console.log({ messagem: "destruído", from: "useBle.tsx - 31" })
       manager.destroy();
     };
   }, [manager]);
@@ -160,6 +68,7 @@ export const useBle = () => {
   const connectToDevice = useCallback(
     async (deviceId: string) => {
       try {
+        await manager.stopDeviceScan()
         const device = await manager.connectToDevice(deviceId);
         const connected = await device.discoverAllServicesAndCharacteristics();
         setConnectedDevice(connected);
@@ -227,31 +136,28 @@ export const useBle = () => {
     [connectedDevice]
   );
 
-  const listenNotification = useCallback(
-    (characteristic: Characteristic, listener: (error: BleError | null, characteristic: Characteristic | null) => void) => {
-      if (!connectedDevice) {
-        throw new Error("No device connected");
-      }
+  return (
+    <BleContext.Provider value={{
+      devices,
+      connectedDevice,
+      characteristics,
+      isScanning,
+      scanForDevices,
+      connectToDevice,
+      disconnectFromDevice,
+      readCharacteristic,
+      writeCharacteristic,
+      error
+    }}>
+      {children}
+    </BleContext.Provider>
+  )
+}
 
-      characteristic.monitor(listener)
-      
-    },
-    [connectedDevice, manager]
-  );
-  
-
-  return {
-    manager,
-    devices,
-    connectedDevice,
-    characteristics,
-    isScanning,
-    scanForDevices,
-    connectToDevice,
-    disconnectFromDevice,
-    readCharacteristic,
-    writeCharacteristic,
-    listenNotification,
-    error
-  };
-};
+export const useBle = () => {
+  const context = useContext(BleContext)
+  if(!context) {
+    throw new Error("useWeather deve ser usado dentro de um BleContextProvider")
+  }
+  return context
+}

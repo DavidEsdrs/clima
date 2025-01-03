@@ -11,9 +11,9 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ConfigProvider } from "@/hooks/useConfiguration";
-import { ConnectionProvider } from "@/hooks/useConnection";
 import { LocationContextProvider } from "@/components/useLocation";
 import { WeatherContextProvider } from "@/hooks/useWeather";
+import { BleContextProvider } from "@/hooks/useBle";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -41,14 +41,14 @@ export default function RootLayout() {
         <ConfigProvider>
           <LocationContextProvider>
             <WeatherContextProvider>
-              <ConnectionProvider>
+              <BleContextProvider>
                 <SafeAreaProvider>
                   <Stack>
                     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                     <Stack.Screen name="+not-found" />
                   </Stack>
                 </SafeAreaProvider>
-              </ConnectionProvider>
+              </BleContextProvider>
             </WeatherContextProvider>
           </LocationContextProvider>
         </ConfigProvider>

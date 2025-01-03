@@ -2,14 +2,11 @@ import { View, Text, ScrollView, Pressable, Image } from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
 import img from "@/assets/images/logo.png"
 import { Link } from "expo-router";
-import { useConnection } from "@/hooks/useConnection";
 import { Divider } from "@/components/Divider";
 import { DeviceConfiguration } from "@/components/DeviceConfiguration";
 import { AccessibilityFocusWrapper } from "@/components/AccessibilityFocusWrapper";
 
 export default function HomeScreen() {
-  const { isConnected } = useConnection()
-
   return (
     <SafeAreaView className="flex-1">
       <View className="flex flex-1 py-4 px-2">
@@ -39,13 +36,6 @@ export default function HomeScreen() {
               <Pressable className="bg-purple-400 py-2 px-4 rounded-md">
                 <Text className="text-black font-bold text-xl">
                   Luminosidade
-                </Text>
-              </Pressable>
-            </Link>
-            <Link className="mb-4" href={"/(tabs)/connection"} asChild>
-              <Pressable className="bg-purple-400 py-2 px-4 rounded-md">
-                <Text className="text-black font-bold text-xl">
-                  Conexão: {isConnected ? "Ativa" : "Inativa"}
                 </Text>
               </Pressable>
             </Link>
