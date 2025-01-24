@@ -1,15 +1,22 @@
+import { CHARACTERISTICS_UUID } from "@/constants/Characteristics";
+import * as Speech from "expo-speech"
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { BleManager, Device, Characteristic, UUID, NativeCharacteristic, BleError, LogLevel } from 'react-native-ble-plx';
+import { BleManager, State, Device, Characteristic, UUID, BleError, LogLevel, Subscription, BleErrorCode } from 'react-native-ble-plx';
+import { Buffer } from "buffer";
+import { useWeather } from "./useWeather";
 
 type BleContextProps = {
   devices: Device[]
   connectedDevice?: Device | null
-  characteristics: Characteristic[]
   error: Error | null
   isScanning: boolean
+  isNotifying: boolean
+  isConnecting: boolean
   scanForDevices: () => void
-  connectToDevice: (deviceId: string) => Promise<void>
+  connectToDevice: (deviceId: string, enableNotifications: boolean) => Promise<void>
   disconnectFromDevice: () => Promise<void>
+  enableNotifications: () => void
+  unableNotifications: () => void
   readCharacteristic: (characteristicUuid: string) => Promise<string | null>
   writeCharacteristic: (characteristicUuid: string, value: string) => Promise<void>
 }
@@ -21,29 +28,94 @@ const manager = new BleManager()
 export function BleContextProvider({ children }: React.PropsWithChildren) {
   const [devices, setDevices] = useState<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
-  const [characteristics, setCharacteristics] = useState<Characteristic[]>([]);
+  const [notificationSub, setNotificationSub] = useState<Subscription | null>(null)
   const [isScanning, setIsScanning] = useState(false);
-  const [error, setError] = useState<Error | null>(null)
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [characteristics, setCharacteristics] = useState<Characteristic[]>([]);
+  const { available, data, speakWeather } = useWeather();
 
   useEffect(() => {
     manager.setLogLevel(LogLevel.Verbose);
-    manager.onStateChange(state => {
-      console.log("BLE state changed: ", state)
-    })
 
     return () => {
-      console.log({ messagem: "destruído", from: "useBle.tsx - 31" })
       manager.destroy();
     };
   }, [manager]);
 
-  const scanForDevices = useCallback(() => {
-    setIsScanning(true);
+  const speak = useCallback(
+    (error: BleError | null, c: Characteristic | null) => {
+      if (error) {
+        const {
+          androidErrorCode,
+          attErrorCode,
+          errorCode,
+          iosErrorCode,
+          message,
+          name,
+          reason,
+          cause,
+        } = error
+        console.log({
+          androidErrorCode,
+          attErrorCode,
+          errorCode,
+          iosErrorCode,
+          message,
+          name,
+          reason,
+          cause,
+        })
+        switch (error?.errorCode) {
+          case BleErrorCode.DeviceDisconnected:
+          case BleErrorCode.OperationCancelled:
+            return
+          default:
+            Speech.speak("Ocorreu um erro ao receber as notificações")
+            return
+        }
+      }
+
+      const value = c?.value ? Buffer.from(c.value, "base64").toString("ascii") : undefined
+      console.log("Chamado: ", value)
+
+      if (value === "bt_wea") {
+        if (available) {
+          speakWeather()
+        } else {
+          Speech.speak("Não há dados disponíveis no momento, tente novamente mais tarde.", {
+            language: "pt-BR",
+          })
+        }
+      } else if (value === "bt_lum") {
+        Speech.speak("Luminosidade", {
+          language: "pt-BR",
+        })
+      }
+    },
+    [connectedDevice]
+  )
+
+  const scanForDevices = useCallback(async () => {
     setDevices([]);
 
-    manager.startDeviceScan(null, null, (error, device) => {
+    const state = await manager.state()
+
+    if (state !== State.PoweredOn) {
+      Speech.speak("Cheque se o Bluetooth está ligado.")
+      setError(new Error("Bluetooth não está ligado."))
+      setIsScanning(false)
+      return
+    }
+
+    setIsScanning(true);
+
+    const servicesWanted: UUID[] = CHARACTERISTICS_UUID.DEFAULT_SERVICES
+
+    manager.startDeviceScan(servicesWanted, null, (error, device) => {
       if (error) {
-        console.error(error);
+        Speech.speak("Cheque se o Bluetooth está ligado e se todas as permissões estão ativadas para o aplicativo.")
         setIsScanning(false);
         setError(error)
         return;
@@ -66,8 +138,9 @@ export function BleContextProvider({ children }: React.PropsWithChildren) {
   }, [manager]);
 
   const connectToDevice = useCallback(
-    async (deviceId: string) => {
+    async (deviceId: string, enableNotifications: boolean) => {
       try {
+        setIsConnecting(true)
         await manager.stopDeviceScan()
         const device = await manager.connectToDevice(deviceId);
         const connected = await device.discoverAllServicesAndCharacteristics();
@@ -81,11 +154,13 @@ export function BleContextProvider({ children }: React.PropsWithChildren) {
           allCharacteristics.push(...chars);
         }
 
-        setCharacteristics(allCharacteristics);
+        setIsConnecting(false)
+        setCharacteristics(allCharacteristics)
       } catch (error) {
         console.error('Connection error:', error);
         setError(error as Error)
         setConnectedDevice(null);
+        setIsConnecting(false)
       }
     },
     [manager]
@@ -95,7 +170,10 @@ export function BleContextProvider({ children }: React.PropsWithChildren) {
     if (connectedDevice) {
       await manager.cancelDeviceConnection(connectedDevice.id);
       setConnectedDevice(null);
-      setCharacteristics([]);
+      setIsNotifying(false)
+      setCharacteristics([])
+      setDevices([])
+      setIsScanning(false)
     }
   }, [manager, connectedDevice]);
 
@@ -136,18 +214,38 @@ export function BleContextProvider({ children }: React.PropsWithChildren) {
     [connectedDevice]
   );
 
+  const enableNotifications = useCallback(() => {
+    if (!connectedDevice) return;
+    const characteristic = characteristics.find((c) => c.uuid === CHARACTERISTICS_UUID.DEFAULT_NOTIFICATION_CHARACTERISTIC);
+    if (characteristic) {
+      const sub = characteristic.monitor(speak);
+      console.log({ sub })
+      setNotificationSub(sub)
+      setIsNotifying(true);
+    }
+  }, [connectedDevice, characteristics]);
+
+  const unableNotifications = useCallback(() => {
+    notificationSub?.remove()
+    setNotificationSub(null)
+    setIsNotifying(false);
+  }, [notificationSub]);
+
   return (
     <BleContext.Provider value={{
       devices,
       connectedDevice,
-      characteristics,
       isScanning,
       scanForDevices,
       connectToDevice,
       disconnectFromDevice,
       readCharacteristic,
       writeCharacteristic,
-      error
+      enableNotifications,
+      unableNotifications,
+      isNotifying,
+      isConnecting,
+      error,
     }}>
       {children}
     </BleContext.Provider>
@@ -156,7 +254,7 @@ export function BleContextProvider({ children }: React.PropsWithChildren) {
 
 export const useBle = () => {
   const context = useContext(BleContext)
-  if(!context) {
+  if (!context) {
     throw new Error("useWeather deve ser usado dentro de um BleContextProvider")
   }
   return context
