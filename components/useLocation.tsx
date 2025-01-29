@@ -13,23 +13,14 @@ type Location = {
   }
 }
 
-type AvailableLocation = {
-  location: null
-  available: false
+type LocationContextProps = {
+  location: Location | null
 }
-
-type UnvailableLocation = {
-  location: Location
-  available: true
-}
-
-type LocationContextProps = AvailableLocation | UnvailableLocation
 
 const LocationContext = createContext<LocationContextProps | undefined>(undefined)
 
 export function LocationContextProvider({ children }: React.PropsWithChildren) {
   const [location, setLocation] = useState<Location | null>(null)
-  const [available, setAvailable] = useState(false)
 
   useEffect(() => {
     async function getCurrentLocation() {
@@ -56,10 +47,8 @@ export function LocationContextProvider({ children }: React.PropsWithChildren) {
             longitude: location.coords.longitude,
           },
         })
-
-        setAvailable(true)
       } catch {
-        setAvailable(false)
+        console.error("Unable to catch location")
       }
     }
 
@@ -67,7 +56,7 @@ export function LocationContextProvider({ children }: React.PropsWithChildren) {
   }, []);
 
   return (
-    <LocationContext.Provider value={available && location ? { location, available } : { location: null, available: false }}>
+    <LocationContext.Provider value={{ location }}>
       {children}
     </LocationContext.Provider>
   )

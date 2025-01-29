@@ -59,17 +59,14 @@ const API_KEY = "16f377b5b244f8b273600b72bccaaba4"
 const WEATHER_API = (lat: number, lon: number) => `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}&exclude=minutely,daily&lang=pt_br`
 
 export function WeatherContextProvider({ children }: React.PropsWithChildren) {
-  const { location, available } = useLocation()
+  const { location } = useLocation()
   const [isDataAvailable, setIsDataAvailable] = useState(false)
   const { isPending, error, data, isFetching, refetch } = useQuery({
     queryKey: ['weather'],
     queryFn: async () => {
-      if (available) {
-        const response = await fetch(WEATHER_API(location.coordinates.latitude, location.coordinates.longitude))
-        const json = await response.json()
-        return json as WeatherAPIResponse
-      }
-      return {} as WeatherAPIResponse
+      const response = await fetch(WEATHER_API(location!.coordinates.latitude, location!.coordinates.longitude))
+      const json = await response.json()
+      return json as WeatherAPIResponse
     },
     refetchInterval: 6e5,
     refetchIntervalInBackground: true
@@ -92,7 +89,7 @@ export function WeatherContextProvider({ children }: React.PropsWithChildren) {
 
   const speakWeather = useCallback(() => {
     let weatherSpeech = ""
-    if (!available) {
+    if (!location) {
       return
     }
     if (configurations.temperature) {
@@ -111,7 +108,7 @@ export function WeatherContextProvider({ children }: React.PropsWithChildren) {
     Speech.speak(speech, {
       language: "pt-BR",
     })
-  }, [data, available])
+  }, [data])
 
   return (
     <WeatherContext.Provider value={{ data: data!, available: isDataAvailable, speakWeather }}>
